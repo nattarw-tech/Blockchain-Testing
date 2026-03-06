@@ -8,8 +8,10 @@
     "nft": "ts-node src/nft/mintRegulatoryToken.ts"
   },
   "dependencies": {
-    "xrpl": "^4.0.0",
-    "dotenv": "^16.4.0"
+    "cross-fetch": "^4.0.0",
+    "dotenv": "^16.4.0",
+    "xahau": "^4.0.3",
+    "xrpl": "^4.0.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

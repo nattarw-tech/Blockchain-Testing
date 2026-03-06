@@ -24,7 +24,10 @@
  * Or:       npx ts-node src/demo.ts
  */
 
+import "cross-fetch/polyfill";
+
 import { Client, Wallet } from "xrpl";
+import { Client as XahauClient, Wallet as XahauWallet } from "xahau";
 import dotenv from "dotenv";
 
 import { NETWORKS } from "./config";
@@ -78,11 +81,13 @@ async function setupXRPLAccounts(client: Client): Promise<{
   let regulatorWallet: Wallet;
   let caspWallet: Wallet;
 
+  const xrplFaucet = { faucetHost: "faucet.altnet.rippletest.net", faucetPath: "/accounts" };
+
   if (process.env.XRPL_REGULATOR_SEED) {
     regulatorWallet = Wallet.fromSeed(process.env.XRPL_REGULATOR_SEED);
     info(`Using existing Regulator wallet: ${regulatorWallet.address}`);
   } else {
-    const { wallet } = await client.fundWallet();
+    const { wallet } = await client.fundWallet(null, xrplFaucet);
     regulatorWallet = wallet;
     ok(`Funded Regulator wallet: ${regulatorWallet.address}`);
   }
@@ -91,7 +96,7 @@ async function setupXRPLAccounts(client: Client): Promise<{
     caspWallet = Wallet.fromSeed(process.env.XRPL_CASP_SEED);
     info(`Using existing CASP wallet: ${caspWallet.address}`);
   } else {
-    const { wallet } = await client.fundWallet();
+    const { wallet } = await client.fundWallet(null, xrplFaucet);
     caspWallet = wallet;
     ok(`Funded CASP wallet:       ${caspWallet.address}`);
   }
@@ -99,17 +104,20 @@ async function setupXRPLAccounts(client: Client): Promise<{
   return { regulatorWallet, caspWallet };
 }
 
-async function setupXahauAccount(client: Client): Promise<Wallet> {
+async function setupXahauAccount(client: XahauClient): Promise<XahauWallet> {
   section("Funding Xahau Testnet Account (via faucet)");
   console.log("  This may take 15-30 seconds...\n");
 
   if (process.env.XAHAU_REGULATOR_SEED) {
-    const wallet = Wallet.fromSeed(process.env.XAHAU_REGULATOR_SEED);
+    const wallet = XahauWallet.fromSeed(process.env.XAHAU_REGULATOR_SEED);
     info(`Using existing Xahau Regulator wallet: ${wallet.address}`);
     return wallet;
   }
 
-  const { wallet } = await client.fundWallet();
+  const { wallet } = await client.fundWallet(null, {
+    faucetHost: "xahau-test.net",
+    faucetPath: "/accounts",
+  });
   ok(`Funded Xahau Regulator wallet: ${wallet.address}`);
   return wallet;
 }
@@ -212,7 +220,7 @@ async function main(): Promise<void> {
   section("Connecting to Xahau Testnet (Hooks)");
   info(`URL: ${NETWORKS.XAHAU_TESTNET.url}`);
 
-  const xahauClient = new Client(NETWORKS.XAHAU_TESTNET.url);
+  const xahauClient = new XahauClient(NETWORKS.XAHAU_TESTNET.url);
   await xahauClient.connect();
   ok("Connected to Xahau Testnet");
 
@@ -233,7 +241,7 @@ async function main(): Promise<void> {
     if (tokens.length > 0) {
       ok(`Found ${tokens.length} Regulatory State Token(s) on Xahau`);
       for (const token of tokens) {
-        info(`NFT ID : ${token.nftId}`);
+        info(`URIToken ID : ${token.uriTokenId}`);
         try {
           // Strip the data URI prefix to get the raw JSON
           const jsonStr = token.uriDecoded.replace(
@@ -283,8 +291,8 @@ async function main(): Promise<void> {
 
   XLS-20 Regulatory State Token (Xahau Testnet):
     ${nftResult
-      ? `✓ NFTokenMint TX:       ${nftResult.mintTxHash}
-    ✓ NFT ID:               ${nftResult.nftId}
+      ? `✓ URITokenMint TX:      ${nftResult.mintTxHash}
+    ✓ URIToken ID:          ${nftResult.uriTokenId}
     ✓ Minter verified on:   ${nftResult.explorerUrl}
     ✓ URI contains full MiCA Art.54 rule JSON (self-describing token)`
       : "⚠ NFT minting skipped (see error above)"
