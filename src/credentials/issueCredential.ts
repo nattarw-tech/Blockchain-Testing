@@ -19,7 +19,7 @@
 
 import { Client, Wallet, convertStringToHex } from "xrpl";
 import { NETWORKS, CREDENTIAL_TYPE_STRING } from "../config";
-import { MICA_ARTICLE_54_RULE, encodeRuleAsJSON } from "../rules/micaRules";
+import { MICA_ARTICLE_54_RULE } from "../rules/micaRules";
 
 // CredentialCreate and CredentialAccept may not yet be typed in xrpl.js v4.
 // We use the Transaction interface with type casting for forward compatibility.
@@ -49,9 +49,10 @@ export async function issueRegulatoryPassport(
 ): Promise<CredentialResult> {
   const credentialTypeHex = convertStringToHex(CREDENTIAL_TYPE_STRING);
 
-  // Build a URI that encodes the rule this credential attests to.
-  // We embed the MiCA rule JSON so the credential is self-describing.
-  const credentialUri = `data:application/json;charset=utf-8,${encodeRuleAsJSON(MICA_ARTICLE_54_RULE)}`;
+  // XLS-70 URI field limit: 256 hex characters = 128 bytes of actual data.
+  // We use a compact URI scheme that identifies the rule without embedding the full JSON.
+  // The full rule JSON is encoded in the NFT (Regulatory State Token) instead.
+  const credentialUri = `mica://EU-2023-1114/Art.54/EMT-capital-requirement/v1.0`;
   const credentialUriHex = convertStringToHex(credentialUri);
 
   console.log("\n--- Step 1: CredentialCreate (Regulator → CASP) ---");
